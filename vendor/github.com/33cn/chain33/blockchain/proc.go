@@ -18,7 +18,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.ID, "cap", len(reqnum))
+		chainlog.Debug("blockchain:recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.ID, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		atomic.AddInt32(&chain.runcount, 1)
@@ -158,19 +158,31 @@ func (chain *BlockChain) getBlocks(msg *queue.Message) {
 }
 
 func (chain *BlockChain) addBlock(msg *queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
-	_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
-	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
+
+	chainlog.Debug("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
+	if GetDownloadSyncStatus() {
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(blockpid.Block.GetHeight())
+		}
+		err := chain.WriteBlockToDbTemp(blockpid.Block)
+		if err != nil {
+			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
 	} else {
-		//chain.notifySync()
+		_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
+		if err != nil {
+			chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
+		chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	}
-	chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 

@@ -47,7 +47,7 @@ func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		blockLastHeight, bodyPerfix, LastSequence, headerPerfix, heightToHeaderPerfix,
 		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, HashToSeqPerfix,
-		seqCBPrefix, seqCBLastNumPrefix,
+		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey,
 	}
 }
 
@@ -488,7 +488,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	var lastSequence int64 = -1
 	height := blockdetail.Block.Height
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
-		storeLog.Error("SaveBlock Receipts is nil ", "height", height)
+		//storeLog.Error("SaveBlock Receipts is nil ", "height", height)
 	}
 	hash := blockdetail.Block.Hash()
 

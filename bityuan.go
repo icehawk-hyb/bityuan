@@ -5,13 +5,12 @@ TestNet=false
 version="6.1.0"
 [blockchain]
 defCacheSize=128
-maxFetchBlockNum=128
+maxFetchBlockNum=256
 timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
 singleMode=false
-
 
 [p2p]
 enable=true
